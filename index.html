@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Exercism Student Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-mark">Ex</span>
+        <span class="logo-text">Exercism <em>Student Tracker</em></span>
+      </div>
+      <!-- <div class="header-meta">AI Skillset Challenge &mdash; Batch Verifier</div> -->
+    </div>
+  </header>
+
+  <main class="main">
+
+    <!-- INPUT PANEL -->
+    <section class="panel input-panel">
+      <div class="panel-header">
+        <h2>Add student profiles</h2>
+        <p class="hint">Upload a CSV file or paste Exercism URLs.</p>
+      </div>
+
+      <!-- CSV UPLOAD ZONE -->
+      <div class="upload-zone" id="uploadZone"
+           onclick="document.getElementById('csvFileInput').click()"
+           ondragover="App.onDragOver(event)"
+           ondragleave="App.onDragLeave(event)"
+           ondrop="App.onDrop(event)">
+        <input type="file" id="csvFileInput" accept=".csv,text/csv" style="display:none"
+               onchange="App.onFileSelected(event)" />
+        <div class="upload-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+        </div>
+        <div class="upload-label">Drop your CSV here or <span class="upload-link">browse file</span></div>
+        <div class="upload-hint">Any column containing Exercism URLs or handles will be auto-detected &mdash; header row skipped automatically</div>
+        <div class="upload-status" id="uploadStatus"></div>
+      </div>
+
+      <div class="or-divider"><span>or paste manually</span></div>
+
+      <textarea id="input" spellcheck="false"
+        placeholder="https://exercism.org/profiles/username&#10;username&#10;https://exercism.org/profiles/another_user"></textarea>
+
+      <div class="input-actions">
+        <div class="track-selector-wrap">
+          <label class="track-label">Track</label>
+          <select id="trackSelect" class="track-select">
+            <!-- Populated by app.js -->
+          </select>
+        </div>
+        <button class="btn btn-primary" id="fetchBtn" onclick="App.startFetch()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+          Fetch submissions
+        </button>
+        <!-- <button class="btn" onclick="App.loadSample()">Load sample</button> -->
+        <button class="btn" onclick="App.clearAll()">Clear</button>
+        <button class="btn btn-export" id="csvBtn" disabled onclick="App.exportCSV()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export CSV
+        </button>
+      </div>
+    </section>
+
+    <!-- PROGRESS -->
+    <section class="panel progress-panel" id="progressPanel" style="display:none">
+      <div class="progress-header">
+        <span id="progLabel">Fetching profiles...</span>
+        <span id="progCount" class="prog-count">0%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progBar" style="width:0%"></div>
+      </div>
+      <div class="progress-sub" id="progSub">Starting workers...</div>
+    </section>
+
+    <!-- STATS CARDS -->
+    <section class="stats-grid" id="statsSection" style="display:none">
+      <div class="stat-card">
+        <div class="stat-icon">&#9670;</div>
+        <div class="stat-label">Total students</div>
+        <div class="stat-value" id="sTot">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon success">&#10003;</div>
+        <div class="stat-label">Fetched ok</div>
+        <div class="stat-value" id="sOk">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon warn">&#9670;</div>
+        <div class="stat-label">Errors</div>
+        <div class="stat-value" id="sErr">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon accent">&#9825;</div>
+        <div class="stat-label">Avg solutions</div>
+        <div class="stat-value" id="sAvg">0</div>
+      </div>
+      <div class="stat-card stat-card--wide">
+        <div class="stat-icon gold">&#9733;</div>
+        <div class="stat-label">Top scorer</div>
+        <div class="stat-value stat-value--sm" id="sTop">—</div>
+      </div>
+    </section>
+
+    <!-- TABLE PANEL -->
+    <section class="panel table-panel" id="tablePanel" style="display:none">
+      <div class="table-controls">
+        <span class="track-badge" id="trackBadge" style="display:none"></span>
+        <div class="search-wrap">
+          <svg class="search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="search" placeholder="Search students..." oninput="App.renderTable()" />
+        </div>
+        <select id="sort" onchange="App.renderTable()">
+          <option value="solutions_desc">Solutions: high &#8594; low</option>
+          <option value="solutions_asc">Solutions: low &#8594; high</option>
+          <option value="name_asc">Name: A &rarr; Z</option>
+          <option value="tracks_desc">Tracks: most first</option>
+        </select>
+        <select id="filter" onchange="App.renderTable()">
+          <option value="all">All students</option>
+          <option value="ok">Fetched ok</option>
+          <option value="error">Errors only</option>
+        </select>
+        <span class="row-count" id="rowCount"></span>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="col-rank">#</th>
+              <th class="col-student">Student</th>
+              <th class="col-num" id="solHeader">Solutions</th>
+              <th class="col-num">Tracks</th>
+              <th class="col-exercises" id="exHeader" style="display:none">Exercises done</th>
+              <th class="col-status">Status</th>
+              <th class="col-link">Profile</th>
+            </tr>
+          </thead>
+          <tbody id="tbody">
+            <tr><td colspan="7" class="empty-state">No data yet. Paste handles above and click fetch.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
