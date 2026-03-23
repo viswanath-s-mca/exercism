@@ -1,9 +1,3 @@
-/**
- * Exercism Student Tracker — app.js
- * Fetches public Exercism profile data for a list of student handles.
- * Uses the Exercism public API (no auth required).
- */
-
 const App = (() => {
 
   /* ──────────────────────────────
