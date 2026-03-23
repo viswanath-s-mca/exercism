@@ -17,7 +17,6 @@
         <span class="logo-mark">Ex</span>
         <span class="logo-text">Exercism <em>Student Tracker</em></span>
       </div>
-      <!-- <div class="header-meta">AI Skillset Challenge &mdash; Batch Verifier</div> -->
     </div>
   </header>
 
@@ -27,7 +26,7 @@
     <section class="panel input-panel">
       <div class="panel-header">
         <h2>Add student profiles</h2>
-        <p class="hint">Upload a CSV file or paste Exercism URLs.</p>
+        <p class="hint">Upload a CSV file or paste Exercism URLs</p>
       </div>
 
       <!-- CSV UPLOAD ZONE -->
@@ -66,7 +65,6 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
           Fetch submissions
         </button>
-        <!-- <button class="btn" onclick="App.loadSample()">Load sample</button> -->
         <button class="btn" onclick="App.clearAll()">Clear</button>
         <button class="btn btn-export" id="csvBtn" disabled onclick="App.exportCSV()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -128,7 +126,6 @@
           <option value="solutions_desc">Solutions: high &#8594; low</option>
           <option value="solutions_asc">Solutions: low &#8594; high</option>
           <option value="name_asc">Name: A &rarr; Z</option>
-          <option value="tracks_desc">Tracks: most first</option>
         </select>
         <select id="filter" onchange="App.renderTable()">
           <option value="all">All students</option>
@@ -143,16 +140,15 @@
           <thead>
             <tr>
               <th class="col-rank">#</th>
-              <th class="col-student">Student</th>
+              <th class="col-student">Student Name</th>
+              <th class="col-profile">Profile Name</th>
               <th class="col-num" id="solHeader">Solutions</th>
-              <!-- <th class="col-num">Tracks</th> -->
-              <!-- <th class="col-exercises" id="exHeader" style="display:none">Exercises done</th> -->
               <th class="col-status">Status</th>
               <th class="col-link">Profile</th>
             </tr>
           </thead>
           <tbody id="tbody">
-            <tr><td colspan="7" class="empty-state">No data yet. Paste handles above and click fetch.</td></tr>
+            <tr><td colspan="6" class="empty-state">No data yet. Upload a CSV or paste handles above and click fetch.</td></tr>
           </tbody>
         </table>
       </div>
