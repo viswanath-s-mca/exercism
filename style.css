@@ -681,6 +681,25 @@ tbody tr:hover td {
   object-fit: cover;
 }
 
+.col-profile  { min-width: 160px; }
+
+.profile-name-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.profile-handle {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--blue);
+}
+
+.profile-display {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
 .student-name {
   font-weight: 500;
   font-size: 13px;
