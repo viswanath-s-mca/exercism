@@ -265,7 +265,7 @@ const App = (() => {
 
     // Show/hide exercises column
     const showExercises = !!trackSlug;
-    document.getElementById('exHeader').style.display = showExercises ? '' : 'none';
+    // document.getElementById('exHeader').style.display = showExercises ? '' : 'none';
 
     const tbody = document.getElementById('tbody');
 
@@ -283,8 +283,8 @@ const App = (() => {
         : ini;
 
       const badgeCls = r.status === 'ok' ? 'badge-ok' : 'badge-error';
-      const badgeTxt = r.status === 'ok' ? '✓ ok' : '✗ error';
-      const errRow   = r.error ? `<div class="err-msg">${r.error}</div>` : '';
+      const badgeTxt = r.status === 'ok' ? '✓ ok' : '✗';
+      const errRow   = r.error ? `<div class="err-msg">${"Invalid user"}</div>` : '';
 
       const count     = getCount(r);
       const isTop     = count > 0 && count === maxCount;
@@ -301,19 +301,7 @@ const App = (() => {
 
       // Exercises pill list (only when track is selected)
       const exCell = showExercises
-        ? `<td style="display:table-cell">
-            <div class="exercise-pills">
-              ${r.exercises.slice(0, 8).map(ex =>
-                `<span class="ex-pill">${escapeHtml(ex)}</span>`
-              ).join('')}
-              ${r.exercises.length > 8
-                ? `<span class="ex-pill ex-pill-more">+${r.exercises.length - 8}</span>`
-                : ''}
-              ${r.exercises.length === 0 && r.status === 'ok'
-                ? `<span style="font-size:11px;color:var(--text-muted)">none yet</span>`
-                : ''}
-            </div>
-          </td>`
+        ? `<td style="display:none"></td>`
         : `<td style="display:none"></td>`;
 
       return `
@@ -331,7 +319,6 @@ const App = (() => {
             </div>
           </td>
           <td class="num-cell ${isTop ? 'highlight' : ''}">${barHtml}</td>
-          <td class="num-cell">${r.tracks_count}</td>
           ${exCell}
           <td><span class="badge ${badgeCls}">${badgeTxt}</span>${errRow}</td>
           <td>
