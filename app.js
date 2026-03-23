@@ -643,6 +643,16 @@ const App = (() => {
   /* ──────────────────────────────
      UTILITIES
   ────────────────────────────── */
+    function loadSample() {
+    document.getElementById('input').value = [
+      'https://exercism.org/profiles/exercism',
+      'iHiD',
+      'kytrinyx',
+      'ErikSchierboom',
+      'coderabbit',
+    ].join('\n');
+  }
+
 
   function clearAll() {
     document.getElementById('input').value = '';
