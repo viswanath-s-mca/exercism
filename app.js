@@ -67,7 +67,6 @@ const App = (() => {
     { slug: '',           label: 'All tracks'  },
     { slug: 'python',     label: 'Python'       },
     { slug: 'javascript', label: 'JavaScript'   },
-    { slug: 'typescript', label: 'TypeScript'   },
     { slug: 'java',       label: 'Java'         },
     { slug: 'cpp',        label: 'C++'          },
     { slug: 'c',          label: 'C'            },
@@ -643,7 +642,8 @@ const App = (() => {
   /* ──────────────────────────────
      UTILITIES
   ────────────────────────────── */
-    function loadSample() {
+
+  function loadSample() {
     document.getElementById('input').value = [
       'https://exercism.org/profiles/exercism',
       'iHiD',
@@ -652,7 +652,6 @@ const App = (() => {
       'coderabbit',
     ].join('\n');
   }
-
 
   function clearAll() {
     document.getElementById('input').value = '';
