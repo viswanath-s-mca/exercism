@@ -1,9 +1,16 @@
+/**
+ * Exercism Student Tracker — app.js
+ * Fetches public Exercism profile data for a list of student handles.
+ * Uses the Exercism public API (no auth required).
+ */
+
 const App = (() => {
 
   /* ──────────────────────────────
      STATE
   ────────────────────────────── */
-  let results = [];
+  let results      = [];
+  let studentNames = {};  // handle -> real name from CSV
 
   /* ──────────────────────────────
      HELPERS
@@ -64,7 +71,6 @@ const App = (() => {
     { slug: 'java',       label: 'Java'         },
     { slug: 'cpp',        label: 'C++'          },
     { slug: 'c',          label: 'C'            },
-    { slug: 'csharp',     label: 'C#'           },
   ];
 
   /** Populate the track <select> on page load */
@@ -222,7 +228,6 @@ const App = (() => {
     const filter     = document.getElementById('filter').value;
     const trackSlug  = document.getElementById('trackSelect').value;
 
-    // When a track is selected, show count for that track; else total
     const getCount = r => trackSlug ? (r.track_solutions ?? 0) : r.num_solutions;
 
     let data = [...results];
@@ -233,22 +238,26 @@ const App = (() => {
     if (search) {
       data = data.filter(r =>
         r.handle.toLowerCase().includes(search) ||
-        (r.name || '').toLowerCase().includes(search)
+        (r.name || '').toLowerCase().includes(search) ||
+        (studentNames[r.handle] || '').toLowerCase().includes(search)
       );
     }
 
     const sortFns = {
       solutions_desc: (a, b) => getCount(b) - getCount(a),
       solutions_asc:  (a, b) => getCount(a) - getCount(b),
-      name_asc:       (a, b) => (a.name || a.handle).localeCompare(b.name || b.handle),
-      tracks_desc:    (a, b) => b.tracks_count - a.tracks_count,
+      name_asc:       (a, b) => {
+        const na = studentNames[a.handle] || a.name || a.handle;
+        const nb = studentNames[b.handle] || b.name || b.handle;
+        return na.localeCompare(nb);
+      },
     };
     data.sort(sortFns[sort] || sortFns.solutions_desc);
 
     document.getElementById('rowCount').textContent =
       `${data.length} of ${results.length} students`;
 
-    // Update column header based on track selection
+    // Update solutions column header
     const solHeader = document.getElementById('solHeader');
     if (trackSlug) {
       const label = TRACKS.find(t => t.slug === trackSlug)?.label || trackSlug;
@@ -257,46 +266,40 @@ const App = (() => {
       solHeader.textContent = 'Solutions';
     }
 
-    // Show/hide exercises column
-    const showExercises = !!trackSlug;
-    // document.getElementById('exHeader').style.display = showExercises ? '' : 'none';
-
-    const tbody = document.getElementById('tbody');
+    const tbody   = document.getElementById('tbody');
+    const maxCount = Math.max(...data.map(getCount), 1);
 
     if (!data.length) {
-      tbody.innerHTML = `<tr><td colspan="7" class="empty-state">No students match your filters.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" class="empty-state">No students match your filters.</td></tr>`;
       return;
     }
 
-    const maxCount = Math.max(...data.map(getCount));
-
     tbody.innerHTML = data.map((r, i) => {
-      const ini = initials(r.name || r.handle);
+      const csvName     = studentNames[r.handle] || '—';
+      const profileName = r.name && r.name !== r.handle ? r.name : r.handle;
+      const ini         = initials(csvName !== '—' ? csvName : profileName);
+
       const avatarHtml = r.avatar_url
-        ? `<img src="${r.avatar_url}" alt="${ini}" onerror="this.style.display='none';this.nextSibling.style.display='flex'" /><span style="display:none">${ini}</span>`
+        ? `<img src="${r.avatar_url}" alt="${ini}"
+               onerror="this.style.display='none';this.nextSibling.style.display='flex'" />
+           <span style="display:none">${ini}</span>`
         : ini;
 
       const badgeCls = r.status === 'ok' ? 'badge-ok' : 'badge-error';
       const badgeTxt = r.status === 'ok' ? '✓ ok' : '✗';
-      const errRow   = r.error ? `<div class="err-msg">${"Invalid user"}</div>` : '';
+      const errRow   = r.error ? `<div class="err-msg">Invalid user name</div>` : '';
 
-      const count     = getCount(r);
-      const isTop     = count > 0 && count === maxCount;
+      const count = getCount(r);
+      const pct   = Math.round((count / maxCount) * 100);
+      const isTop = count > 0 && count === maxCount;
 
-      // Mini progress bar showing relative completion
-      const pct = maxCount > 0 ? Math.round((count / maxCount) * 100) : 0;
       const barHtml = `
         <div style="display:flex;align-items:center;gap:8px">
-          <span style="min-width:28px;text-align:right">${count}</span>
-          <div style="flex:1;height:3px;background:var(--border);border-radius:2px;min-width:50px">
+          <span style="min-width:28px;text-align:right;font-family:var(--font-mono);font-size:13px">${count}</span>
+          <div style="flex:1;height:3px;background:var(--border);border-radius:2px;min-width:60px">
             <div style="width:${pct}%;height:100%;background:${isTop ? 'var(--accent)' : 'var(--blue)'};border-radius:2px"></div>
           </div>
         </div>`;
-
-      // Exercises pill list (only when track is selected)
-      const exCell = showExercises
-        ? `<td style="display:none"></td>`
-        : `<td style="display:none"></td>`;
 
       return `
         <tr>
@@ -304,20 +307,25 @@ const App = (() => {
           <td>
             <div class="student-cell">
               <div class="avatar">${avatarHtml}</div>
-              <div>
-                <div class="student-name">${escapeHtml(r.name || r.handle)}</div>
-                ${r.name && r.name !== r.handle
-                  ? `<div class="student-handle">${escapeHtml(r.handle)}</div>`
-                  : ''}
-              </div>
+              <div class="student-name">${escapeHtml(csvName)}</div>
+            </div>
+          </td>
+          <td>
+            <div class="profile-name-cell">
+              <span class="profile-handle">@${escapeHtml(r.handle)}</span>
+              ${r.name && r.name !== r.handle
+                ? `<span class="profile-display">${escapeHtml(r.name)}</span>`
+                : ''}
             </div>
           </td>
           <td class="num-cell ${isTop ? 'highlight' : ''}">${barHtml}</td>
-          ${exCell}
-          <td><span class="badge ${badgeCls}">${badgeTxt}</span>${errRow}</td>
+          <td>
+            <span class="badge ${badgeCls}">${badgeTxt}</span>
+            ${errRow}
+          </td>
           <td>
             <a class="profile-link"
-               href="https://exercism.org/profiles/${r.handle}${trackSlug ? '/exercises?track_slug=' + trackSlug : ''}"
+               href="https://exercism.org/profiles/${r.handle}"
                target="_blank" rel="noopener noreferrer">↗ view</a>
           </td>
         </tr>`;
@@ -342,26 +350,27 @@ const App = (() => {
     const trackSlug  = document.getElementById('trackSelect').value;
     const trackLabel = TRACKS.find(t => t.slug === trackSlug)?.label || 'All tracks';
 
-    const headers = trackSlug
-      ? ['Rank','Handle','Display Name','Total Solutions',`${trackLabel} Solutions`,'Exercises Completed','Tracks','Status','Error','Profile URL']
-      : ['Rank','Handle','Display Name','Total Solutions','Tracks','Status','Error','Profile URL'];
+    const headers = [
+      'Rank', 'Student Name', 'Profile Name', 'Exercism Handle',
+      trackSlug ? `${trackLabel} Solutions` : 'Total Solutions',
+      'Status', 'Profile URL',
+    ];
 
     const sorted = [...results].sort((a, b) =>
-      (trackSlug ? (b.track_solutions ?? 0) - (a.track_solutions ?? 0) : b.num_solutions - a.num_solutions)
+      trackSlug
+        ? (b.track_solutions ?? 0) - (a.track_solutions ?? 0)
+        : b.num_solutions - a.num_solutions
     );
 
-    const rows = sorted.map((r, i) => {
-      const base = [
-        i + 1, r.handle, r.name || '', r.num_solutions,
-      ];
-      if (trackSlug) {
-        base.push(r.track_solutions ?? 0);
-        base.push(r.exercises.join('; '));
-      }
-      base.push(r.tracks_count, r.status, r.error || '',
-        `https://exercism.org/profiles/${r.handle}`);
-      return base;
-    });
+    const rows = sorted.map((r, i) => [
+      i + 1,
+      studentNames[r.handle] || '',
+      r.name || r.handle,
+      r.handle,
+      trackSlug ? (r.track_solutions ?? 0) : r.num_solutions,
+      r.status,
+      `https://exercism.org/profiles/${r.handle}`,
+    ]);
 
     const csvContent = [headers, ...rows]
       .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
@@ -464,15 +473,16 @@ const App = (() => {
 
   /**
    * Given parsed CSV rows (header row first), auto-detect which columns
-   * contain Exercism URLs or handles and extract all unique handles.
+   * contain Exercism URLs or handles, and which column contains student names.
+   * Returns handles array and a handle->name map.
    */
   function extractHandlesFromCSV(rows) {
-    if (rows.length < 2) return { handles: [], detectedColumns: [] };
+    if (rows.length < 2) return { handles: [], nameMap: {}, detectedColumns: [] };
 
-    const headers = rows[0];
+    const headers  = rows[0];
     const dataRows = rows.slice(1);
 
-    // Score each column by how many cells look like Exercism data
+    // Score each column: Exercism URL = 3pts, valid handle pattern = 1pt
     const colScores = headers.map((_, colIdx) => {
       let score = 0;
       for (const row of dataRows) {
@@ -485,24 +495,60 @@ const App = (() => {
     });
 
     const maxScore = Math.max(...colScores);
-    if (maxScore === 0) return { handles: [], detectedColumns: [] };
+    if (maxScore === 0) return { handles: [], nameMap: {}, detectedColumns: [] };
 
-    // Use all columns that score at least 50% of the max
     const threshold = maxScore * 0.5;
-    const goodCols = colScores
+    const goodCols  = colScores
       .map((s, i) => ({ score: s, idx: i, name: headers[i] }))
       .filter(c => c.score >= threshold);
 
-    const handles = new Set();
+    // Detect a "name" column: header contains name/student/full keywords
+    // OR it's the column with the most non-empty plain text values that
+    // don't look like handles/URLs.
+    const nameKeywords = /name|student|full|fname|lname|first|last/i;
+    let nameColIdx = headers.findIndex(h => nameKeywords.test(h));
+
+    if (nameColIdx === -1) {
+      // Fallback: find the non-Exercism column with the most values containing spaces
+      // (real names usually have spaces, handles don't)
+      let bestNameScore = 0;
+      headers.forEach((_, colIdx) => {
+        if (goodCols.some(c => c.idx === colIdx)) return; // skip handle cols
+        let s = 0;
+        for (const row of dataRows) {
+          const cell = (row[colIdx] || '').trim();
+          if (cell && cell.includes(' ')) s++;
+        }
+        if (s > bestNameScore) { bestNameScore = s; nameColIdx = colIdx; }
+      });
+    }
+
+    // Build handle list and name map
+    const handles = [];
+    const nameMap = {};
+    const seen    = new Set();
+
     for (const row of dataRows) {
+      // Extract handle from Exercism columns
+      let handle = null;
       for (const col of goodCols) {
-        const h = extractHandle(row[col.idx] || '');
-        if (h) handles.add(h);
+        handle = extractHandle(row[col.idx] || '');
+        if (handle) break;
+      }
+      if (!handle || seen.has(handle)) continue;
+      seen.add(handle);
+      handles.push(handle);
+
+      // Extract student name from name column
+      if (nameColIdx !== -1) {
+        const rawName = (row[nameColIdx] || '').trim();
+        if (rawName) nameMap[handle] = rawName;
       }
     }
 
     return {
-      handles: [...handles],
+      handles,
+      nameMap,
       detectedColumns: goodCols.map(c => c.name || `Column ${c.idx + 1}`),
     };
   }
@@ -532,20 +578,25 @@ const App = (() => {
           throw new Error('CSV appears empty or has only a header row.');
         }
 
-        const { handles, detectedColumns } = extractHandlesFromCSV(rows);
+        const { handles, nameMap, detectedColumns } = extractHandlesFromCSV(rows);
 
         if (!handles.length) {
           throw new Error('No Exercism URLs or handles found in any column.');
         }
 
-        // Populate textarea
+        // Store name mapping globally
+        studentNames = nameMap;
+
+        // Populate textarea with handles
         document.getElementById('input').value = handles.join('\n');
 
         // Success UI
         zone.classList.add('upload-success');
-        const colNames = detectedColumns.join(', ');
+        const colNames    = detectedColumns.join(', ');
+        const namesLoaded = Object.keys(nameMap).length;
         status.textContent =
-          `✓ ${handles.length} handles loaded from "${file.name}" — column(s): ${colNames}`;
+          `✓ ${handles.length} handles loaded from "${file.name}" — column(s): ${colNames}` +
+          (namesLoaded ? ` · ${namesLoaded} student names detected` : '');
 
       } catch (err) {
         zone.classList.add('upload-error');
@@ -593,25 +644,19 @@ const App = (() => {
      UTILITIES
   ────────────────────────────── */
 
-  function loadSample() {
-    document.getElementById('input').value = [
-      'https://exercism.org/profiles/exercism',
-      'iHiD',
-      'kytrinyx',
-      'ErikSchierboom',
-      'coderabbit',
-    ].join('\n');
-  }
-
   function clearAll() {
     document.getElementById('input').value = '';
-    results = [];
+    results      = [];
+    studentNames = {};
+    const zone   = document.getElementById('uploadZone');
+    zone.classList.remove('upload-success', 'upload-error');
+    document.getElementById('uploadStatus').textContent = '';
     hide('statsSection');
     hide('tablePanel');
     hide('progressPanel');
     document.getElementById('csvBtn').disabled = true;
     document.getElementById('tbody').innerHTML =
-      `<tr><td colspan="6" class="empty-state">No data yet. Paste handles above and click fetch.</td></tr>`;
+      `<tr><td colspan="6" class="empty-state">No data yet. Upload a CSV or paste handles above and click fetch.</td></tr>`;
   }
 
   /* ──────────────────────────────
